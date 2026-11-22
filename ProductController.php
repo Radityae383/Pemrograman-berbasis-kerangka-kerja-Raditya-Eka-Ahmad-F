@@ -2,46 +2,62 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Product;
 use Illuminate\Http\Request;
 
 class ProductController extends Controller
 {
-    private array $products = [
-        ['id' => 1, 'nama' => 'Kopi Arabika', 'harga' => 45000, 'stok' => 10],
-        ['id' => 2, 'nama' => 'Teh Hijau', 'harga' => 25000, 'stok' => 15],
-    ];
-
-    public function index()
+    public function index(Request $request)
     {
-        return response()->json($this->products);
+        $query = Product::query();
+
+        if ($request->filled('search')) {
+            $search = $request->query('search');
+            $query->where('nama', 'like', "%{$search}%");
+        }
+
+        return response()->json($query->latest()->get());
+    }
+
+    public function trashed()
+    {
+        return response()->json(Product::onlyTrashed()->latest()->get());
+    }
+
+    public function restore($id)
+    {
+        $product = Product::onlyTrashed()->findOrFail($id);
+        $product->restore();
+
+        return response()->json([
+            'pesan' => 'Produk berhasil dipulihkan',
+            'data' => $product,
+        ]);
     }
 
     public function store(Request $request)
     {
-        $nama  = $request->input('nama');
-        $harga = $request->harga;
-        $stok  = $request->input('stok');
+        $product = Product::create($request->all());
 
-        return response()->json([
-            'pesan' => 'Produk diterima',
-            'data'  => [
-                'nama'  => $nama,
-                'harga' => $harga,
-                'stok'  => $stok,
-            ],
-        ], 201);
+        return response()->json($product, 201);
     }
 
-    public function show($id)
+    public function show(Product $product)
     {
-        foreach ($this->products as $product) {
-            if ((int) $product['id'] === (int) $id) {
-                return response()->json($product);
-            }
-        }
+        return response()->json($product);
+    }
 
-        return response()->json([
-            'pesan' => 'Produk tidak ditemukan',
-        ], 404);
+    public function update(Request $request, Product $product)
+    {
+        $product->update($request->all());
+
+        return response()->json($product);
+    }
+
+    public function destroy(Product $product)
+    {
+        $product->delete();
+
+        return response()->json(null, 204);
     }
 }
