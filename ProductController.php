@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreProductRequest;
+use App\Http\Requests\UpdateProductRequest;
 use App\Http\Resources\ProductResource;
 use App\Models\Product;
 use Illuminate\Http\Request;
@@ -43,17 +45,9 @@ class ProductController extends Controller
         return ProductResource::collection($query->paginate($perPage));
     }
 
-    public function store(Request $request)
+    public function store(StoreProductRequest $request)
     {
-        $validated = $request->validate([
-            'name'        => ['required', 'string', 'max:255'],
-            'harga'       => ['required', 'numeric', 'min:0'],
-            'stok'        => ['required', 'integer', 'min:0'],
-            'description' => ['nullable', 'string'],
-            'category_id' => ['required', 'exists:categories,id'],
-        ]);
-
-        $product = Product::create($validated)->load('category');
+        $product = Product::create($request->validated())->load('category');
 
         return (new ProductResource($product))
             ->response()
@@ -67,17 +61,9 @@ class ProductController extends Controller
         return new ProductResource($product);
     }
 
-    public function update(Request $request, Product $product)
+    public function update(UpdateProductRequest $request, Product $product)
     {
-        $validated = $request->validate([
-            'name'        => ['sometimes', 'required', 'string', 'max:255'],
-            'harga'       => ['sometimes', 'required', 'numeric', 'min:0'],
-            'stok'        => ['sometimes', 'required', 'integer', 'min:0'],
-            'description' => ['nullable', 'string'],
-            'category_id' => ['sometimes', 'required', 'exists:categories,id'],
-        ]);
-
-        $product->update($validated);
+        $product->update($request->validated());
         $product->load('category');
 
         return new ProductResource($product);
